@@ -1,0 +1,2 @@
+class SCurrencies:
+    pass

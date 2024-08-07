@@ -8,11 +8,29 @@ class DTOCurrenciesPOST:
         self.sign = data.get("sign")[0]
 
 
-class DTOCurrenciesGet:
+class DTOExchangeRatesPOST:
+    def __init__(self, rate: Decimal, base: int, target: int) -> None:
+        self.rate = rate
+        self.base = base
+        self.target = target
 
-    def __init__(self, id: int, code: str, name: str, sign: str) -> None:
+
+class BaseDTOCurrenciesGet:
+    def __init__(self, id: int, code: str) -> None:
         self.id = id
         self.code = code
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "code": self.code
+        }
+
+
+class DTOCurrenciesGet(BaseDTOCurrenciesGet):
+
+    def __init__(self, id: int, code: str, name: str, sign: str) -> None:
+        super().__init__(id, code)
         self.name = name
         self.sign = sign
 

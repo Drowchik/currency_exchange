@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from dto import DTOCurrenciesGet, DTOCurrenciesPOST, ExchangeRates
+from decimal import Decimal
+from dto import BaseDTOCurrenciesGet, DTOCurrenciesGet, DTOCurrenciesPOST, DTOExchangeRatesPOST, ExchangeRates
 from models import BaseModel
 
 
@@ -42,6 +43,13 @@ class ControlerCurrencies(Controler):
     def add_data(self, data: dict):
         self.model.insert_data(DTOCurrenciesPOST(data))
 
+    def get_two_data(self, val_one, val_two):
+        data = self.model.get_two_data(val_one, val_two)
+        print(data, "\nlox", *data)
+        target, base = [BaseDTOCurrenciesGet(
+            id=val[0], code=val[1]) for val in data]
+        return target, base
+
 
 class ControlerExchageRates(Controler):
     def __init__(self, model: BaseModel) -> None:
@@ -68,8 +76,9 @@ class ControlerExchageRates(Controler):
                              target_currency=base_target_currency[0],
                              rate=data[1]).to_dict()
 
-    def add_data(self, data: dict):
-        pass
+    def add_data(self, rate: Decimal, base: ControlerCurrencies, target: ControlerCurrencies):
+        self.model.insert_data(DTOExchangeRatesPOST(
+            rate=rate, base=base.id, target=target.id))
 
     def create_currency(self, data: list):
         target_currency = DTOCurrenciesGet(id=data[2],
@@ -81,3 +90,7 @@ class ControlerExchageRates(Controler):
                                          name=data[8],
                                          sign=data[9]).to_dict()
         return target_currency, base_currency
+
+    def patch_data(self, target, base, rate):
+        print(rate, base, target)
+        self.model.update_data(rate=rate, base_id=base, target_id=target)

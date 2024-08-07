@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import sqlite3
 
-from dto import DTOCurrenciesPOST
+from dto import DTOCurrenciesPOST, DTOExchangeRatesPOST
 
 
 class BaseModel(ABC):
@@ -52,6 +52,13 @@ class Currencies(BaseModel):
             f'SELECT * FROM Currencies WHERE {find_val} = ?', (value,))
         return self.cursor.fetchone()
 
+    def get_two_data(self, one_val: str, two_val: str):
+        self.cursor.execute('''SELECT cur.id, cur.Code
+                                FROM Currencies cur
+                                WHERE cur.Code = ? OR cur.Code=?''', (one_val, two_val))
+
+        return self.cursor.fetchall()
+
 
 class ExchangeRates(BaseModel):
     def __init__(self, db_name: str) -> None:
@@ -72,9 +79,9 @@ class ExchangeRates(BaseModel):
         ''')
         self.connection.commit()
 
-    def insert_data(self, BaseCurrencyId, TargetCurrencyId, Rate):
+    def insert_data(self, dto: DTOExchangeRatesPOST):
         self.cursor.execute(
-            'INSERT INTO ExchangeRates (BaseCurrencyId, TargetCurrencyId, Rate) VALUES (?, ?, ?)', (BaseCurrencyId, TargetCurrencyId, Rate))
+            'INSERT INTO ExchangeRates (BaseCurrencyId, TargetCurrencyId, Rate) VALUES (?, ?, ?)', (dto.base, dto.target, dto.rate))
         self.connection.commit()
 
     def get_all_data(self):
@@ -114,3 +121,9 @@ class ExchangeRates(BaseModel):
                             WHERE Cur.Code = ? AND Curs.Code=?                            
                             ''', (code_two, code_one))
         return self.cursor.fetchall()
+
+    def update_data(self, rate, base_id, target_id):
+        print(rate, base_id, target_id)
+        self.cursor.execute(
+            'UPDATE ExchangeRates SET Rate = ? WHERE BaseCurrencyId = ? AND TargetCurrencyId = ?', (rate, base_id, target_id))
+        self.connection.commit()

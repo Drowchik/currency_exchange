@@ -2,8 +2,11 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 
 from controller import ControlerCurrencies, ControlerExchageRates
+from dto import DTOConverted
 from models import Currencies, ExchangeRates
 from urllib import parse
+
+from service import ServiceConerted
 
 
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
@@ -13,52 +16,74 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         ExchangeRates('currency.db'))
 
     def do_GET(self):
-        # parsed_path = parse.urlparse(self.path)
-        if self.path == "/currencies":
-            self.send_my_response(
-                200,
-                'application/json',
-                json.dumps(self.controler_currencies.get_all()))
-        elif self.path.startswith("/currencies/"):
-            path = self.path.split("/")[2]
+        paths_all = {
+            "/currencies": self.controler_currencies.get_all,
+            "/exchangeRates": self.controler_exchage_rates.get_all,
+        }
+        paths_one = {
+            "/currency/": self.controler_currencies.get_one_data,
+            "/exchangeRate/": self.controler_exchage_rates.get_one_data,
+        }
+        if self.path in paths_all:
+            handler = paths_all[self.path]
             try:
-                data = self.controler_currencies.get_one_data("Code", path)
+                result = handler()
+                self.send_my_response(200, 'application/json', result)
             except Exception as e:
                 self.send_my_response(
-                    500, "text/html", "Извините, база данных недоступна")
-
-            if data:
+                    500, 'application/json', '{"message": "Database unavailable"}')
+        elif any(self.path.startswith(key) for key in paths_one):
+            param = self.path.split("/")
+            handler = paths_one["/"+param[1]+"/"]
+            try:
+                data = handler(param[2])
+                if data:
+                    self.send_my_response(
+                        200, "application/json", json.dumps(data))
+                else:
+                    self.send_my_response(
+                        404, "application/json", '{"message": "Data not found"}')
+            except:
                 self.send_my_response(
-                    200, "application/json",  json.dumps(data))
-            else:
-                self.send_my_response(
-                    404, "application/json", "Валюта не была найдена")
-        elif self.path == "/exchangeRates":
+                    400, "application/json", '{"message": "The currency code is missing from the address"}')
+        elif self.path.startswith("/exchange?"):
+            parsed_url = parse.urlparse(self.path)
+            query_params = parse.parse_qs(parsed_url.query)
+            a = ServiceConerted(self.controler_exchage_rates,
+                                DTOConverted(query_params))
             self.send_my_response(
-                200,
-                'application/json',
-                json.dumps(self.controler_exchage_rates.get_all()))
-        elif self.path.startswith("/exchangeRates/"):
-            code_all = self.path.split("/")[2]
-            data = self.controler_exchage_rates.get_one_data(code_all)
-            self.send_my_response(
-                200, "application/json", json.dumps(data))
+                200, "application/json", json.dumps(a.first_func()))
         else:
             self.send_my_response(
                 500, "text/html", "Извините, такой страницы нет")
 
     def send_my_response(self, code: int, content_type: str, message: str):
         self.send_response(code)
-        self.send_header('Content-type', content_type)
+        self.send_header('Access-Control-Allow-Credentials', 'true')
+        self.send_header(keyword="Access-Control-Allow-Origin", value='*')
+        self.send_header(keyword="Access-Control-Allow-Methods",
+                         value='GET, POST, OPTIONS, PATCH')
+        self.send_header(keyword='Access-Control-Allow-Headers',
+                         value='Content-Type')
+        self.send_header('Content-Type', 'application/json')
         self.end_headers()
         self.wfile.write(message.encode("utf-8"))
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Credentials', 'true')
+        self.send_header(keyword="Access-Control-Allow-Origin", value='*')
+        self.send_header(keyword="Access-Control-Allow-Methods",
+                         value='GET, POST, OPTIONS, PATCH')
+        self.send_header(keyword='Access-Control-Allow-Headers',
+                         value='Content-Type')
+        self.end_headers()
 
     def do_POST(self):
         if self.path == "/currencies":
             data = self.help_post()
             self.controler_currencies.add_data(data)
-            data = self.controler_currencies.get_one_data(
-                "Code", data.get('code')[0])
+            data = self.controler_currencies.get_one_data(data.get('code')[0])
             self.send_my_response(200, "application/json", json.dumps(data))
         elif self.path == "/exchangeRates":
             data = self.help_post()
@@ -74,9 +99,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_PATCH(self):
         if self.path.startswith("/exchangeRate/"):
             data = self.help_post()
-            print(data)
             code_all = path = self.path.split("/")[2]
-            print(code_all)
             target, base = self.controler_currencies.get_two_data(code_all[:3],
                                                                   code_all[3:6])
             self.controler_exchage_rates.patch_data(rate=data.get(

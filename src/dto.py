@@ -56,3 +56,28 @@ class ExchangeRates:
                 "targetCurrency": self.target_currency,
                 "rate": self.rate
                 }
+
+
+class DTOCovertedGet:
+    def __init__(self, baseCurrency, targetCurrency, rate, amount, convertedAmount) -> None:
+        self.baseCurrency = baseCurrency
+        self.targetCurrency = targetCurrency
+        self.rate = rate
+        self.amount = amount
+        self.convertedAmount = convertedAmount
+
+    def to_dict(self):
+        return {
+            "baseCurrency": self.baseCurrency,
+            "targetCurrency": self.targetCurrency,
+            "rate": self.rate,
+            "amount": self.amount,
+            "convertedAmount": self.convertedAmount,
+        }
+
+
+class DTOConverted:
+    def __init__(self, query: dict) -> None:
+        self.from_value = query["from"][0]
+        self.to_value = query["to"][0]
+        self.amount = float(query["amount"][0])

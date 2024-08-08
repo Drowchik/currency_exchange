@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from decimal import Decimal
+import json
 from dto import BaseDTOCurrenciesGet, DTOCurrenciesGet, DTOCurrenciesPOST, DTOExchangeRatesPOST, ExchangeRates
 from models import BaseModel
 
@@ -27,25 +28,23 @@ class ControlerCurrencies(Controler):
 
     def get_all(self):
         data = self.model.get_all_data()
-        return [DTOCurrenciesGet(id=item[0],
-                                 code=item[1],
-                                 name=item[2],
-                                 sign=item[3]).to_dict() for item in data]
+        return json.dumps([DTOCurrenciesGet(id=item[0],
+                                            code=item[1],
+                                            name=item[2],
+                                            sign=item[3]).to_dict() for item in data])
 
-    def get_one_data(self, find_val, value):
-        data = self.model.get_one_data(find_val, value)
-        if data:
-            return DTOCurrenciesGet(id=data[0],
-                                    code=data[1],
-                                    name=data[2],
-                                    sign=data[3]).to_dict()
+    def get_one_data(self, value):
+        data = self.model.get_one_data(value)
+        return DTOCurrenciesGet(id=data[0],
+                                code=data[1],
+                                name=data[2],
+                                sign=data[3]).to_dict()
 
     def add_data(self, data: dict):
         self.model.insert_data(DTOCurrenciesPOST(data))
 
     def get_two_data(self, val_one, val_two):
         data = self.model.get_two_data(val_one, val_two)
-        print(data, "\nlox", *data)
         target, base = [BaseDTOCurrenciesGet(
             id=val[0], code=val[1]) for val in data]
         return target, base
@@ -64,17 +63,20 @@ class ControlerExchageRates(Controler):
                                                     base_currency=base_target_currency[1],
                                                     target_currency=base_target_currency[0],
                                                     rate=data[1]).to_dict())
-        return list_exchage_rates
+        return json.dumps(list_exchage_rates)
 
     def get_one_data(self, code_all):
         code_one = code_all[:3]
         code_two = code_all[3:]
-        data = self.model.get_one_data(code_one, code_two)[0]
-        base_target_currency = self.create_currency(data)
-        return ExchangeRates(id=data[0],
-                             base_currency=base_target_currency[1],
-                             target_currency=base_target_currency[0],
-                             rate=data[1]).to_dict()
+        data = self.model.get_one_data(code_one, code_two)
+        if data:
+            data = data[0]
+            base_target_currency = self.create_currency(data)
+            return ExchangeRates(id=data[0],
+                                 base_currency=base_target_currency[1],
+                                 target_currency=base_target_currency[0],
+                                 rate=data[1]).to_dict()
+        return False
 
     def add_data(self, rate: Decimal, base: ControlerCurrencies, target: ControlerCurrencies):
         self.model.insert_data(DTOExchangeRatesPOST(
@@ -92,5 +94,4 @@ class ControlerExchageRates(Controler):
         return target_currency, base_currency
 
     def patch_data(self, target, base, rate):
-        print(rate, base, target)
         self.model.update_data(rate=rate, base_id=base, target_id=target)

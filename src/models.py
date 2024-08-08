@@ -21,7 +21,7 @@ class BaseModel(ABC):
         pass
 
     @abstractmethod
-    def get_one_data(self, find_one, find_two):
+    def get_one_data(self, value):
         pass
 
 
@@ -47,9 +47,9 @@ class Currencies(BaseModel):
         self.cursor.execute('SELECT * FROM Currencies')
         return self.cursor.fetchall()
 
-    def get_one_data(self, find_val: str, value: str):
+    def get_one_data(self, value: str):
         self.cursor.execute(
-            f'SELECT * FROM Currencies WHERE {find_val} = ?', (value,))
+            'SELECT * FROM Currencies WHERE Code = ?', (value,))
         return self.cursor.fetchone()
 
     def get_two_data(self, one_val: str, two_val: str):
@@ -123,7 +123,6 @@ class ExchangeRates(BaseModel):
         return self.cursor.fetchall()
 
     def update_data(self, rate, base_id, target_id):
-        print(rate, base_id, target_id)
         self.cursor.execute(
             'UPDATE ExchangeRates SET Rate = ? WHERE BaseCurrencyId = ? AND TargetCurrencyId = ?', (rate, base_id, target_id))
         self.connection.commit()

@@ -52,7 +52,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             a = ServiceConerted(self.controler_exchage_rates,
                                 DTOConverted(query_params))
             self.send_my_response(
-                200, "application/json", json.dumps(a.first_func()))
+                200, "application/json", json.dumps(a.convert_currency()))
         else:
             self.send_my_response(
                 500, "text/html", "Извините, такой страницы нет")

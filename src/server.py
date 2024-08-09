@@ -82,9 +82,22 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/currencies":
             data = self.help_post()
-            self.controler_currencies.add_data(data)
-            data = self.controler_currencies.get_one_data(data.get('code')[0])
-            self.send_my_response(200, "application/json", json.dumps(data))
+            for field in ['code', 'name', 'sign']:
+                if field not in data or not data[field]:
+                    self.send_my_response(
+                        400, "application/json", '{"message": "Отсутствует обязательное поыле"}'
+                    )
+                    return
+            try:
+                self.controler_currencies.add_data(data)
+            except Exception as e:
+                self.send_my_response(
+                    409, "application/json", '{"message": "Валютная пара с таким кодом уже существует"}')
+            else:
+                data = self.controler_currencies.get_one_data(
+                    data.get('code')[0])
+                self.send_my_response(
+                    200, "application/json", json.dumps(data))
         elif self.path == "/exchangeRates":
             data = self.help_post()
             target, base = self.controler_currencies.get_two_data(data.get("baseCurrencyCode")[0],

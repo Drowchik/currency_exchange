@@ -15,7 +15,7 @@ class ServiceConerted:
                                   targetCurrency=direct_rate["targetCurrency"],
                                   amount=self.dto_object.amount,
                                   rate=direct_rate["rate"],
-                                  convertedAmount=self.dto_object.amount*direct_rate["rate"]).to_dict()
+                                  convertedAmount=round(self.dto_object.amount*direct_rate["rate"], 2)).to_dict()
         # 2 случай
         inverse_key = f"{self.dto_object.to_value}{self.dto_object.from_value}"
         inverse_rate = self.controler_exchage_rates.get_one_data(inverse_key)
@@ -25,17 +25,17 @@ class ServiceConerted:
                                   targetCurrency=inverse_rate["baseCurrency"],
                                   amount=self.dto_object.amount,
                                   rate=round(rate, 2),
-                                  convertedAmount=round(self.dto_object.amount*rate, 2).to_dict())
+                                  convertedAmount=round(self.dto_object.amount*rate, 2)).to_dict()
         # 3 случай
         data_usd_to = self.controler_exchage_rates.get_one_data(
             f"USD{self.dto_object.to_value}")
         data_usd_from = self.controler_exchage_rates.get_one_data(
             f"USD{self.dto_object.from_value}")
         if data_usd_to and data_usd_from:
-            rate = round(data_usd_to["rate"]/data_usd_from["rate"], 2)
+            rate = data_usd_to["rate"]/data_usd_from["rate"]
             return DTOCovertedGet(baseCurrency=data_usd_from["targetCurrency"],
                                   targetCurrency=data_usd_to["targetCurrency"],
                                   amount=self.dto_object.amount,
-                                  rate=rate,
+                                  rate=round(rate, 2),
                                   convertedAmount=round(rate*self.dto_object.amount, 2)).to_dict()
         return '{"message": "Conversion rate not found"}'

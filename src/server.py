@@ -2,18 +2,20 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 
 from controller import ControlerCurrencies, ControlerExchageRates
+from core.database import ConnectManager
 from dto import DTOConverted
 from models import Currencies, ExchangeRates
 from urllib import parse
-
+from core.config import settings
 from service import ServiceConerted
 
 
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
-    controler_currencies = ControlerCurrencies(Currencies('currency.db'))
+    coonect_manager = ConnectManager(settings.db_name)
+    controler_currencies = ControlerCurrencies(Currencies(coonect_manager))
     controler_exchage_rates = ControlerExchageRates(
-        ExchangeRates('currency.db'))
+        ExchangeRates(coonect_manager))
 
     def do_GET(self):
         paths_all = {

@@ -1,11 +1,11 @@
 import json
-
 from abc import ABC, abstractmethod
 from decimal import Decimal
 
-from dto import (BaseDTOCurrenciesGet, DTOConverted, DTOCurrenciesGet, DTOCurrenciesPOST,
-                 DTOExchangeRatesPOST, ExchangeRates)
-from exception import DatabaseUnavailableError
+from dto import (BaseDTOCurrenciesGet, DTOConverted, DTOCurrenciesGet,
+                 DTOCurrenciesPOST, DTOExchangeRatesPOST, ExchangeRates)
+from exception import (CodeNotFoundError, DatabaseUnavailableError,
+                       MissingFieldError)
 from models import BaseModel
 from service import ServiceConerted
 
@@ -43,13 +43,19 @@ class ControlerCurrencies(Controler):
 
     def get_one_data(self, value: str):
         data = self.model.get_one_data(value)
+        if not data:
+            raise CodeNotFoundError()
         return DTOCurrenciesGet(id=data[0],
                                 code=data[1],
                                 name=data[2],
                                 sign=data[3]).to_dict()
 
     def add_data(self, data: dict):
-        self.model.insert_data(DTOCurrenciesPOST(data))
+        try:
+            dto_object = DTOCurrenciesPOST(data)
+        except Exception as e:
+            raise MissingFieldError(str(e))
+        self.model.insert_data(dto_object)
 
 
 class ControlerExchageRates(Controler):
@@ -81,7 +87,7 @@ class ControlerExchageRates(Controler):
                                  base_currency=base_target_currency[1],
                                  target_currency=base_target_currency[0],
                                  rate=data[1]).to_dict()
-        return False
+        raise CodeNotFoundError()
 
     def add_data(self, data: dict):
         self.model.insert_data(DTOExchangeRatesPOST(

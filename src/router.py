@@ -1,9 +1,10 @@
 from urllib.parse import parse_qs, urlparse
+
 from controller import ControlerCurrencies, ControlerExchageRates
-from core.database import ConnectManager
-from exception import RouteNotFoundError
-from models import Currencies, ExchangeRates
 from core.config import settings
+from core.database import ConnectManager
+from exception import MissingFieldError, RouteNotFoundError
+from models import Currencies, ExchangeRates
 
 
 class Router:
@@ -32,8 +33,10 @@ class Router:
         controller = route["controller"]
         with_id = route["with_id"]
 
-        if with_id and len(parts) == 2:
+        if with_id and len(parts) == 3:
             return lambda: controller(parts[2])
+        elif with_id:
+            raise MissingFieldError()
         elif query_params:
             return lambda: controller(query_params)
 
@@ -54,4 +57,4 @@ class Router:
         self.add_router("PATCHexchangeRate", lambda rate, data: self.controler_exchage_rates.patch_data(rate,
                                                                                                         data))
         self.add_router(
-            "GETexchange", self.controler_exchage_rates.converted_data, with_id=True)
+            "GETexchange", self.controler_exchage_rates.converted_data)

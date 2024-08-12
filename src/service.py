@@ -1,4 +1,5 @@
 from dto import DTOConverted, DTOCovertedGet
+from exception import ImpossibleСonvert
 
 
 class ServiceConerted:
@@ -38,4 +39,4 @@ class ServiceConerted:
                                   amount=self.dto_object.amount,
                                   rate=round(rate, 2),
                                   convertedAmount=round(rate*self.dto_object.amount, 2)).to_dict()
-        return '{"message": "Conversion rate not found"}'
+        raise ImpossibleСonvert()

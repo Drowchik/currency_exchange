@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 
 from core.database import ConnectManager
 from dto import DTOCurrenciesPOST, DTOExchangeRatesPOST
+from exception import CurrencyAlreadyExists, DataBaseError
 
 
 class BaseModel(ABC):
@@ -27,9 +28,13 @@ class Currencies(BaseModel):
         super().__init__(coonect_manager)
 
     def insert_data(self, dto: DTOCurrenciesPOST):
-        with self.connect_manager.get_cursor() as cursor:
-            cursor.execute(
-                'INSERT INTO Currencies (code, FullName, Sign) VALUES (?, ?, ?)', (dto.code, dto.name, dto.sign))
+        try:
+            with self.connect_manager.get_cursor() as cursor:
+                cursor.execute(
+                    'INSERT INTO Currencies (code, FullName, Sign) VALUES (?, ?, ?)', (dto.code, dto.name, dto.sign))
+        except Exception as e:
+            if 'UNIQUE' in str(e):
+                raise CurrencyAlreadyExists()
 
     def get_all_data(self):
         with self.connect_manager.get_cursor() as cursor:
@@ -48,17 +53,21 @@ class ExchangeRates(BaseModel):
         super().__init__(coonect_manager)
 
     def insert_data(self, dto: DTOExchangeRatesPOST):
-        with self.connect_manager.get_cursor() as cursor:
-            cursor.execute(
-                '''INSERT INTO ExchangeRates (BaseCurrencyId, TargetCurrencyId, Rate)
-                    SELECT 
-                        (SELECT id FROM Currencies WHERE code = ?),
-                        (SELECT id FROM Currencies WHERE code = ?),
-                        ?
-                    WHERE
-                        EXISTS (SELECT 1 FROM Currencies WHERE code = ?)
-                        AND EXISTS (SELECT 1 FROM Currencies WHERE code = ?);
-                    ''', (dto.base, dto.target, dto.rate, dto.base, dto.target))
+        try:
+            with self.connect_manager.get_cursor() as cursor:
+                cursor.execute(
+                    '''INSERT INTO ExchangeRates (BaseCurrencyId, TargetCurrencyId, Rate)
+                        SELECT 
+                            (SELECT id FROM Currencies WHERE code = ?),
+                            (SELECT id FROM Currencies WHERE code = ?),
+                            ?
+                        WHERE
+                            EXISTS (SELECT 1 FROM Currencies WHERE code = ?)
+                            AND EXISTS (SELECT 1 FROM Currencies WHERE code = ?);
+                        ''', (dto.base, dto.target, dto.rate, dto.base, dto.target))
+        except Exception as e:
+            if 'UNIQUE' in str(e):
+                raise CurrencyAlreadyExists()
 
     def get_all_data(self):
         with self.connect_manager.get_cursor() as cursor:

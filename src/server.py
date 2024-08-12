@@ -1,8 +1,10 @@
 import json
-
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib import parse
-from exception import RouteNotFoundError
+
+from exception import (CodeNotFoundError, CurrencyAlreadyExists, DataBaseError,
+                       ImpossibleСonvert, MissingFieldError,
+                       RouteNotFoundError)
 from router import Router
 
 
@@ -19,6 +21,18 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         except RouteNotFoundError as e:
             self.send_my_response(404, 'application/json',
                                   json.dumps({"message": str(e)}))
+        except MissingFieldError as e:
+            self.send_my_response(400, 'application/json',
+                                  json.dumps({"message": str(e)}))
+        except CodeNotFoundError as e:
+            self.send_my_response(404, 'application/json',
+                                  json.dumps({"message": str(e)}))
+        except ImpossibleСonvert as e:
+            self.send_my_response(404, 'application/json',
+                                  json.dumps({"message": str(e)}))
+        except DataBaseError as e:
+            self.send_my_response(500, 'application/json',
+                                  json.dumps({"message": str(e)}))
 
     def do_POST(self):
         try:
@@ -27,6 +41,12 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_my_response(200, 'application/json', json.dumps(result))
         except RouteNotFoundError as e:
             self.send_my_response(404, 'application/json',
+                                  json.dumps({"message": str(e)}))
+        except MissingFieldError as e:
+            self.send_my_response(400, 'application/json',
+                                  json.dumps({"message": str(e)}))
+        except CurrencyAlreadyExists as e:
+            self.send_my_response(409, 'application/json',
                                   json.dumps({"message": str(e)}))
 
     def do_PATCH(self):

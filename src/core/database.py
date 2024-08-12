@@ -2,6 +2,8 @@
 import sqlite3
 from contextlib import contextmanager
 
+from exception import DataBaseError
+
 
 class ConnectManager:
     def __init__(self, db_name: str) -> None:
@@ -12,6 +14,8 @@ class ConnectManager:
         connection = sqlite3.connect(self.db_name)
         try:
             yield connection
+        except Exception as e:
+            raise DataBaseError(str(e))
         finally:
             connection.close()
 

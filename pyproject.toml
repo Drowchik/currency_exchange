@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 dynaconf = "^3.2.6"
+isort = "^5.13.2"
 
 
 [build-system]

@@ -1,5 +1,5 @@
-from core.database import ConnectManager
 from core.config import settings
+from core.database import ConnectManager
 
 
 def migration_1(connect: ConnectManager):

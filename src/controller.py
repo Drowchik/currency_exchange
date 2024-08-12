@@ -1,7 +1,11 @@
+import json
+
 from abc import ABC, abstractmethod
 from decimal import Decimal
-import json
-from dto import BaseDTOCurrenciesGet, DTOCurrenciesGet, DTOCurrenciesPOST, DTOExchangeRatesPOST, ExchangeRates
+
+from dto import (BaseDTOCurrenciesGet, DTOCurrenciesGet, DTOCurrenciesPOST,
+                 DTOExchangeRatesPOST, ExchangeRates)
+from exception import DatabaseUnavailableError
 from models import BaseModel
 
 
@@ -28,10 +32,10 @@ class ControlerCurrencies(Controler):
 
     def get_all(self):
         data = self.model.get_all_data()
-        return json.dumps([DTOCurrenciesGet(id=item[0],
-                                            code=item[1],
-                                            name=item[2],
-                                            sign=item[3]).to_dict() for item in data])
+        return [DTOCurrenciesGet(id=item[0],
+                                 code=item[1],
+                                 name=item[2],
+                                 sign=item[3]).to_dict() for item in data]
 
     def get_one_data(self, value):
         data = self.model.get_one_data(value)
@@ -55,15 +59,18 @@ class ControlerExchageRates(Controler):
         super().__init__(model)
 
     def get_all(self):
-        data_all = self.model.get_all_data()
-        list_exchage_rates = []
-        for data in data_all:
-            base_target_currency = self.create_currency(data)
-            list_exchage_rates.append(ExchangeRates(id=data[0],
-                                                    base_currency=base_target_currency[1],
-                                                    target_currency=base_target_currency[0],
-                                                    rate=data[1]).to_dict())
-        return json.dumps(list_exchage_rates)
+        try:
+            data_all = self.model.get_all_data()
+            list_exchage_rates = []
+            for data in data_all:
+                base_target_currency = self.create_currency(data)
+                list_exchage_rates.append(ExchangeRates(id=data[0],
+                                                        base_currency=base_target_currency[1],
+                                                        target_currency=base_target_currency[0],
+                                                        rate=data[1]).to_dict())
+            return list_exchage_rates
+        except DatabaseUnavailableError() as e:
+            return {"message": f"str(e)"}
 
     def get_one_data(self, code_all):
         code_one = code_all[:3]
@@ -78,9 +85,9 @@ class ControlerExchageRates(Controler):
                                  rate=data[1]).to_dict()
         return False
 
-    def add_data(self, rate: Decimal, base: ControlerCurrencies, target: ControlerCurrencies):
+    def add_data(self, data: dict):
         self.model.insert_data(DTOExchangeRatesPOST(
-            rate=rate, base=base.id, target=target.id))
+            rate=data.get("rate")[0], base=data.get("baseCurrencyCode")[0], target=data.get("targetCurrencyCode")[0]))
 
     def create_currency(self, data: list):
         target_currency = DTOCurrenciesGet(id=data[2],
@@ -93,5 +100,7 @@ class ControlerExchageRates(Controler):
                                          sign=data[9]).to_dict()
         return target_currency, base_currency
 
-    def patch_data(self, target, base, rate):
-        self.model.update_data(rate=rate, base_id=base, target_id=target)
+    def patch_data(self, target_base, rate):
+        print(target_base, rate)
+        # self.model.update_data(rate=rate.get(
+        #     "rate")[0], base_id=target_base[:3], target_id=target_base[3:6])

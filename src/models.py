@@ -1,5 +1,5 @@
-from abc import ABC, abstractmethod
 import sqlite3
+from abc import ABC, abstractmethod
 
 from core.database import ConnectManager
 from dto import DTOCurrenciesPOST, DTOExchangeRatesPOST
@@ -57,7 +57,15 @@ class ExchangeRates(BaseModel):
     def insert_data(self, dto: DTOExchangeRatesPOST):
         with self.connect_manager.get_cursor() as cursor:
             cursor.execute(
-                'INSERT INTO ExchangeRates (BaseCurrencyId, TargetCurrencyId, Rate) VALUES (?, ?, ?)', (dto.base, dto.target, dto.rate))
+                '''INSERT INTO ExchangeRates (BaseCurrencyId, TargetCurrencyId, Rate)
+                    SELECT 
+                        (SELECT id FROM Currencies WHERE code = ?),
+                        (SELECT id FROM Currencies WHERE code = ?),
+                        ?
+                    WHERE
+                        EXISTS (SELECT 1 FROM Currencies WHERE code = ?)
+                        AND EXISTS (SELECT 1 FROM Currencies WHERE code = ?);
+                    ''', (dto.base, dto.target, dto.rate, dto.base, dto.target))
 
     def get_all_data(self):
         with self.connect_manager.get_cursor() as cursor:
@@ -99,7 +107,14 @@ class ExchangeRates(BaseModel):
                             ''', (code_two, code_one))
             return cursor.fetchall()
 
-    def update_data(self, rate, base_id, target_id):
+    def update_data(self, rate, base_сode, target_code):
         with self.connect_manager.get_cursor() as cursor:
             cursor.execute(
-                'UPDATE ExchangeRates SET Rate = ? WHERE BaseCurrencyId = ? AND TargetCurrencyId = ?', (rate, base_id, target_id))
+                '''UPDATE ExchangeRates
+                    SET Rate = ?
+                    WHERE BaseCurrencyId = (
+                        SELECT id FROM Currencies WHERE code = ?
+                    )
+                    AND TargetCurrencyId = (
+                        SELECT id FROM Currencies WHERE code = ?
+                    );''', (rate, base_сode, target_code))

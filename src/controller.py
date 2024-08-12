@@ -3,10 +3,11 @@ import json
 from abc import ABC, abstractmethod
 from decimal import Decimal
 
-from dto import (BaseDTOCurrenciesGet, DTOCurrenciesGet, DTOCurrenciesPOST,
+from dto import (BaseDTOCurrenciesGet, DTOConverted, DTOCurrenciesGet, DTOCurrenciesPOST,
                  DTOExchangeRatesPOST, ExchangeRates)
 from exception import DatabaseUnavailableError
 from models import BaseModel
+from service import ServiceConerted
 
 
 class Controler(ABC):
@@ -31,13 +32,16 @@ class ControlerCurrencies(Controler):
         super().__init__(model)
 
     def get_all(self):
-        data = self.model.get_all_data()
+        try:
+            data = self.model.get_all_data()
+        except DatabaseUnavailableError() as e:
+            return {"message": f"str(e)"}
         return [DTOCurrenciesGet(id=item[0],
                                  code=item[1],
                                  name=item[2],
                                  sign=item[3]).to_dict() for item in data]
 
-    def get_one_data(self, value):
+    def get_one_data(self, value: str):
         data = self.model.get_one_data(value)
         return DTOCurrenciesGet(id=data[0],
                                 code=data[1],
@@ -46,12 +50,6 @@ class ControlerCurrencies(Controler):
 
     def add_data(self, data: dict):
         self.model.insert_data(DTOCurrenciesPOST(data))
-
-    def get_two_data(self, val_one, val_two):
-        data = self.model.get_two_data(val_one, val_two)
-        target, base = [BaseDTOCurrenciesGet(
-            id=val[0], code=val[1]) for val in data]
-        return target, base
 
 
 class ControlerExchageRates(Controler):
@@ -72,7 +70,7 @@ class ControlerExchageRates(Controler):
         except DatabaseUnavailableError() as e:
             return {"message": f"str(e)"}
 
-    def get_one_data(self, code_all):
+    def get_one_data(self, code_all: str):
         code_one = code_all[:3]
         code_two = code_all[3:]
         data = self.model.get_one_data(code_one, code_two)
@@ -100,7 +98,12 @@ class ControlerExchageRates(Controler):
                                          sign=data[9]).to_dict()
         return target_currency, base_currency
 
-    def patch_data(self, target_base, rate):
-        print(target_base, rate)
-        # self.model.update_data(rate=rate.get(
-        #     "rate")[0], base_id=target_base[:3], target_id=target_base[3:6])
+    def patch_data(self, rate: dict, target_base: str):
+        target_base = target_base.split('/')[2]
+        self.model.update_data(rate=rate.get(
+            "rate")[0], base_сode=target_base[:3], target_code=target_base[3:6])
+
+    def converted_data(self, query_params: dict):
+        dto_object = DTOConverted(query_params)
+        result = ServiceConerted(self, dto_object)
+        return result.convert_currency()

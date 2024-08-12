@@ -2,14 +2,8 @@ import json
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib import parse
-
-from controller import ControlerCurrencies, ControlerExchageRates
-from core.config import settings
-from core.database import ConnectManager
-from dto import DTOConverted
-from models import Currencies, ExchangeRates
+from exception import RouteNotFoundError
 from router import Router
-from service import ServiceConerted
 
 
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
@@ -19,19 +13,32 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         super().__init__(*args, **kwargs)
 
     def do_GET(self):
-        result = self.router.get_controller(self.command, self.path)()
-        self.send_my_response(200, 'application/json', json.dumps(result))
+        try:
+            result = self.router.get_controller(self.command, self.path)()
+            self.send_my_response(200, 'application/json', json.dumps(result))
+        except RouteNotFoundError as e:
+            self.send_my_response(404, 'application/json',
+                                  json.dumps({"message": str(e)}))
 
     def do_POST(self):
-        data = self.help_function()
-        result = self.router.get_controller(self.command, self.path)(data)
-        self.send_my_response(200, 'application/json', json.dumps(result))
+        try:
+            data = self.help_function()
+            result = self.router.get_controller(self.command, self.path)(data)
+            self.send_my_response(200, 'application/json', json.dumps(result))
+        except RouteNotFoundError as e:
+            self.send_my_response(404, 'application/json',
+                                  json.dumps({"message": str(e)}))
 
     def do_PATCH(self):
-        data = self.help_function()
-        result = self.router.get_controller(self.command, self.path)(data)
-        self.send_my_response(200, 'application/json',
-                              '{"message: "all_good"}')
+        try:
+            data = self.help_function()
+            result = self.router.get_controller(
+                self.command, self.path)(data, self.path)
+            self.send_my_response(200, 'application/json',
+                                  '{"message: "all_good"}')
+        except RouteNotFoundError as e:
+            self.send_my_response(404, 'application/json',
+                                  json.dumps({"message": str(e)}))
 
     def send_my_response(self, code: int, content_type: str, message: str):
         self.send_response(code)

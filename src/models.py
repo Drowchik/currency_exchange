@@ -42,13 +42,6 @@ class Currencies(BaseModel):
                 'SELECT * FROM Currencies WHERE Code = ?', (value,))
             return cursor.fetchone()
 
-    def get_two_data(self, one_val: str, two_val: str):
-        with self.connect_manager.get_cursor() as cursor:
-            cursor.execute('''SELECT cur.id, cur.Code
-                                FROM Currencies cur
-                                WHERE cur.Code = ? OR cur.Code=?''', (one_val, two_val))
-            return cursor.fetchall()
-
 
 class ExchangeRates(BaseModel):
     def __init__(self, coonect_manager: ConnectManager) -> None:
